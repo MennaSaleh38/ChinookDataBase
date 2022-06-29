@@ -1,0 +1,77 @@
+/*Query1*/
+WITH HighestYear AS
+  (SELECT strftime('%Y', Invoice.InvoiceDate) AS YEAR,
+          sum(Total) AS TotalSales
+   FROM Invoice
+   GROUP BY 1
+   ORDER BY 2 DESC
+   LIMIT 1)
+SELECT Employee.EmployeeId,
+       Employee.FirstName || ' '|| Employee.LastName AS FullName,
+       sum(Invoice.Total) AS TotalSales,
+	   HighestYear.YEAR
+FROM Employee
+JOIN Customer ON Employee.EmployeeId= Customer.SupportRepId
+JOIN Invoice ON Invoice.CustomerId=Customer.CustomerId
+JOIN HighestYear ON HIGHESTYEAR.YEAR=strftime('%Y', Invoice.InvoiceDate)
+GROUP BY 1,
+         2
+ORDER BY 3 DESC
+-----------------------------------------------------------------------------
+/*Query2*/
+WITH TOPGENRE AS
+  (SELECT Genre.GenreId AS ID,
+          Genre.Name AS Genre,
+          sum(InvoiceLine.UnitPrice) AS TotalSales
+   FROM Genre
+   JOIN Track ON Track.GenreId=Genre.GenreId
+   JOIN InvoiceLine ON invoiceline.TrackId=track.TrackId
+   GROUP BY 1
+   ORDER BY 3 DESC
+   LIMIT 1)
+SELECT Customer.Country,
+       sum(invoiceline.unitprice)AS TotalPurchases,
+       genre.Name
+FROM Customer
+JOIN Invoice ON invoice.CustomerId=Customer.CustomerId
+JOIN InvoiceLine ON Invoiceline.InvoiceId=Invoice.InvoiceId
+JOIN Track ON Track.TrackId=InvoiceLine.TrackId
+JOIN Genre ON GEnre.GenreId=Track.GenreId
+JOIN TOPGENRE ON TOPGENRE.ID= Genre.GenreId
+WHERE Genre.Name=TOPGENRE.Genre
+GROUP BY 1
+ORDER BY 2 DESC,
+         1
+---------------------------------------------------------------------------
+/*Query3*/
+WITH table1 AS
+  (SELECT Track.TrackId AS ID,
+          Track.Milliseconds,
+          CASE
+              WHEN Track.Milliseconds >
+                     (SELECT avg(Track.Milliseconds)
+                      FROM Track) THEN 'LONG'
+              ELSE 'SHORT'
+          END AS Duration
+   FROM Track)
+SELECT table1.Duration,
+       sum(InvoiceLine.UnitPrice) AS Total
+FROM InvoiceLine
+JOIN table1 ON InvoiceLine.TrackId=table1.ID
+GROUP BY 1
+ORDER BY 2 DESC
+---------------------------------------------------------------------------
+/*Query4*/
+SELECT Customer.FirstName||' '||Customer.LastName AS CustomerName,
+       sum(invoice.total) AS TotalSpent,
+       strftime('%Y-%m', Invoice.InvoiceDate) AS PurchaseDate
+FROM Invoice
+JOIN Customer ON Customer.CustomerId=Invoice.CustomerId
+WHERE PurchaseDate =
+    (SELECT DISTINCT strftime('%Y-%m', InvoiceDate) AS LATESTYEAR
+     FROM Invoice
+     ORDER BY 1 DESC
+     LIMIT 1)
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 3
